@@ -1,0 +1,17 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+.agents/
+*.iml
+native/target/
+*.so
+*.dylib
+*.dll
+*.apk
+*.aab
+.DS_Store
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

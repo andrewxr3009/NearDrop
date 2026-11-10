@@ -1,0 +1,84 @@
+name: Build and release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path native/Cargo.toml --all -- --check
+      - name: Run workspace tests
+        run: cargo test --manifest-path native/Cargo.toml --workspace
+      - name: Build workspace
+        run: cargo build --manifest-path native/Cargo.toml --workspace
+
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Run Android unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neardrop-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [native-tests, android-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: neardrop-debug-apk
+          path: dist
+      - name: Generate APK checksum
+        working-directory: dist
+        run: sha256sum app-debug.apk > SHA256SUMS
+      - name: Create draft prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: NearDrop ${{ github.ref_name }} (development build)
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            dist/app-debug.apk
+            dist/SHA256SUMS
+          body: |
+            Development build signed with the Android debug key. Not an official production-signed APK.
+
+            AirDrop interoperability is not claimed. See the repository compatibility matrix and release process before publishing this draft.

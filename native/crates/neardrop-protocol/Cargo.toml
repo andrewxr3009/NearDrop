@@ -1,0 +1,11 @@
+[package]
+name = "neardrop-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+neardrop-security = { path = "../neardrop-security" }
+
+[lib]
+path = "src/lib.rs"

@@ -1,0 +1,12 @@
+[package]
+name = "neardrop-contract-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+neardrop-core = { path = "../../crates/neardrop-core" }
+neardrop-discovery = { path = "../../crates/neardrop-discovery" }
+neardrop-protocol = { path = "../../crates/neardrop-protocol" }
+neardrop-security = { path = "../../crates/neardrop-security" }
+neardrop-transport = { path = "../../crates/neardrop-transport" }
